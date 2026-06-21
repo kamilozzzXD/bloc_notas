@@ -1,0 +1,96 @@
+/* HomePage.module.css */
+
+.homeWrapper {
+  min-height: 100vh;
+  background: radial-gradient(ellipse at 60% 40%, hsl(224, 70%, 12%) 0%, hsl(230, 80%, 6%) 100%);
+  font-family: 'Inter', system-ui, sans-serif;
+  color: hsl(210, 40%, 95%);
+}
+
+/* ── Header ───────────────────────────────────── */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 2rem;
+  background: hsla(225, 40%, 10%, 0.8);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid hsla(217, 60%, 40%, 0.15);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  color: hsl(217, 91%, 65%);
+}
+
+.brand {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: hsl(210, 40%, 95%);
+  letter-spacing: -0.01em;
+}
+
+.headerRight {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.welcomeMsg {
+  font-size: 0.875rem;
+  color: hsl(217, 30%, 60%);
+}
+
+.welcomeMsg strong {
+  color: hsl(217, 91%, 70%);
+}
+
+.logoutBtn {
+  padding: 0.45rem 1rem;
+  background: hsla(0, 70%, 50%, 0.12);
+  border: 1px solid hsla(0, 70%, 55%, 0.3);
+  border-radius: 0.5rem;
+  color: hsl(0, 85%, 75%);
+  font-size: 0.85rem;
+  font-family: inherit;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.logoutBtn:hover {
+  background: hsla(0, 70%, 50%, 0.22);
+  border-color: hsla(0, 70%, 55%, 0.5);
+}
+
+/* ── Main ─────────────────────────────────────── */
+.main {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100vh - 65px);
+  padding: 2rem;
+}
+
+.emptyState {
+  text-align: center;
+  max-width: 400px;
+  color: hsl(217, 30%, 60%);
+}
+
+.emptyTitle {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: hsl(210, 40%, 90%);
+  margin: 1rem 0 0.5rem;
+}
+
+.emptySubtitle {
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
