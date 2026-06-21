@@ -1,0 +1,43 @@
+# ============================================================
+# .dockerignore — Carpeta /backend
+# Evita copiar archivos innecesarios al contexto de Docker.
+# Resultado: builds más rápidos y sin datos sensibles en imagen.
+# ============================================================
+
+# ── Compilados y artefactos Maven ───────────────────────────
+target/
+*.jar
+*.war
+*.class
+
+# ── Variables de entorno (¡NUNCA en la imagen!) ─────────────
+.env
+.env.*
+!.env.example
+
+# ── IDE y editores ──────────────────────────────────────────
+.idea/
+*.iml
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# ── Control de versiones ────────────────────────────────────
+.git/
+.gitignore
+.gitattributes
+
+# ── Documentación que no afecta el runtime ──────────────────
+README.md
+HELP.md
+*.md
+
+# ── Tests (no se ejecutan en el build Docker con -DskipTests) ─
+# src/test/   ← Descomenta si quieres excluir los tests del contexto
+#              (no es necesario porque Maven los ignora con -DskipTests)
+
+# ── Logs ────────────────────────────────────────────────────
+*.log
+logs/

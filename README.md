@@ -33,6 +33,8 @@ bloc_notas/
 │   ├── src/main/resources/
 │   │   └── application.properties           ← Config MySQL + HikariCP + JWT vía env vars
 │   ├── .env.example                         ← Variables de entorno requeridas (copiar como .env)
+│   ├── .dockerignore                        ← Excluye target/, .env y archivos innecesarios
+│   ├── Dockerfile                           ← Build multi-stage: Maven → JRE Alpine
 │   └── pom.xml                              ← Dependencias Maven (JJWT 0.12.6 incluido)
 │
 ├── frontend/
@@ -307,13 +309,129 @@ El frontend queda en `http://localhost:5173`.
 
 ---
 
+## 🐳 Docker — Backend Multi-Stage
+
+### ¿Qué es un build multi-stage y por qué usarlo?
+
+Un **Dockerfile multi-stage** divide el proceso en dos (o más) etapas independientes dentro del mismo archivo:
+
+```
+┌─────────────────────────────────────────────┐
+│  ETAPA 1: build (maven:3.9-eclipse-temurin-21) │
+│                                             │
+│  • Tiene Maven + JDK completo               │
+│  • Descarga dependencias                    │
+│  • Compila el código fuente                 │
+│  • Genera backend-0.0.1-SNAPSHOT.jar        │
+│                                             │
+│  ❌ Esta imagen NO va a producción          │
+└─────────────────────┬───────────────────────┘
+                      │  COPY --from=build *.jar
+                      ▼
+┌─────────────────────────────────────────────┐
+│  ETAPA 2: runtime (eclipse-temurin:21-jre-alpine) │
+│                                             │
+│  • Solo tiene el JRE (sin Maven, sin JDK)   │
+│  • Pesa ~85 MB (vs ~500 MB con JDK)         │
+│  • Usuario no-root (seguridad)              │
+│  • Variables de entorno en runtime          │
+│                                             │
+│  ✅ Esta imagen SÍ se despliega             │
+└─────────────────────────────────────────────┘
+```
+
+**Ventajas clave:**
+- La imagen final **no contiene** el código fuente ni Maven → menos superficie de ataque.
+- Es hasta **6x más pequeña** que un Dockerfile de una sola etapa.
+- Las credenciales (`.env`) **nunca entran** a la imagen gracias al `.dockerignore`.
+
+### Comandos para construir y probar localmente (VS Code Terminal)
+
+> Ejecuta todos estos comandos desde la carpeta raíz del monorepo (`bloc_notas/`).
+
+#### 1. Construir la imagen
+
+```powershell
+# El contexto de build es la carpeta /backend
+docker build -t bloc-notas-backend:local ./backend
+```
+
+Puedes ver las dos etapas ejecutándose en la terminal. La primera vez tarda ~2-3 min descargando dependencias; los rebuilds son mucho más rápidos gracias al caché de capas.
+
+#### 2. Verificar que la imagen se creó y su tamaño
+
+```powershell
+docker images bloc-notas-backend
+# Deberías ver algo como:
+# REPOSITORY            TAG     SIZE
+# bloc-notas-backend    local   ~180 MB
+```
+
+#### 3. Ejecutar el contenedor con las variables de entorno
+
+```powershell
+# Pasa las mismas variables que usas en tu .env local
+docker run --rm -p 8080:8080 `
+  -e DB_HOST="bszmqngodks6lmrzi146-mysql.services.clever-cloud.com" `
+  -e DB_PORT="3306" `
+  -e DB_NAME="tu_nombre_db" `
+  -e DB_USER="tu_usuario" `
+  -e DB_PASS="tu_contraseña" `
+  -e JWT_SECRET="tu_jwt_secret_base64" `
+  -e JWT_EXPIRATION_MS="86400000" `
+  bloc-notas-backend:local
+```
+
+Alternativamente, puedes pasar tu archivo `.env` directamente:
+
+```powershell
+docker run --rm -p 8080:8080 --env-file ./backend/.env bloc-notas-backend:local
+```
+
+#### 4. Probar que el backend responde
+
+```powershell
+# En otra terminal (o usa Postman / Thunder Client)
+curl -X POST http://localhost:8080/api/auth/login `
+  -H "Content-Type: application/json" `
+  -d '{"username":"test","password":"test123"}'
+
+# Respuesta esperada: 401 (si el usuario no existe) o 200 con JWT
+```
+
+#### 5. Detener el contenedor
+
+```powershell
+# Si lo ejecutaste sin --rm, usa:
+docker ps                          # ver el ID del contenedor
+docker stop <container_id>         # detenerlo
+```
+
+### Estructura de archivos Docker
+
+| Archivo | Ubicación | Propósito |
+|---|---|---|
+| [Dockerfile](file:///c:/Users/camil/Downloads/bloc_notas/backend/Dockerfile) | `backend/Dockerfile` | Define las 2 etapas de build |
+| [.dockerignore](file:///c:/Users/camil/Downloads/bloc_notas/backend/.dockerignore) | `backend/.dockerignore` | Excluye `target/`, `.env`, `.idea/`, etc. |
+
+### Despliegue en Render / Koyeb
+
+Cuando conectes tu repositorio a Render o Koyeb:
+1. Apunta el **Root Directory** a `backend/`.
+2. Docker detectará automáticamente el `Dockerfile`.
+3. Configura las **variables de entorno** en el panel de la plataforma (nunca en el código).
+4. El puerto `8080` ya está expuesto en el `Dockerfile` (`EXPOSE 8080`).
+
+---
+
 ## 📋 Próximos pasos sugeridos
 
 - [ ] Implementar CRUD de notas (`Nota` entity, `NotaRepository`, `NotaController`)
 - [ ] Agregar roles de usuario (ADMIN, USER) con `@PreAuthorize`
 - [ ] Implementar refresh tokens para renovar el JWT sin reloguear
 - [ ] Configurar HTTPS en producción
-- [ ] Dockerizar el proyecto con `docker-compose.yml`
+- [x] ~~Dockerizar el proyecto con `docker-compose.yml`~~ ✅ Hecho (Dockerfile multi-stage)
+- [ ] Agregar `docker-compose.yml` para desarrollo local con MySQL en contenedor
 - [ ] Agregar paginación a las notas
 
 ---
@@ -325,7 +443,7 @@ El frontend queda en `http://localhost:5173`.
 | Backend framework | Spring Boot 4.1.0 |
 | Seguridad | Spring Security 6 |
 | ORM | Hibernate / Spring Data JPA |
-| Base de datos | MySQL 8+ |
+| Base de datos | MySQL 8+ (Clever Cloud) |
 | Pool de conexiones | HikariCP |
 | JWT | JJWT 0.12.6 |
 | Frontend framework | React 19 + TypeScript |
@@ -334,3 +452,7 @@ El frontend queda en `http://localhost:5173`.
 | HTTP client | Axios 1.x |
 | Estilos | CSS Modules (Vanilla CSS) |
 | Fuente tipográfica | Inter (Google Fonts) |
+| Contenedorización | Docker (multi-stage build) |
+| Base imagen runtime | Eclipse Temurin 21 JRE Alpine |
+| Despliegue backend | Render / Koyeb (Docker) |
+| Despliegue frontend | Vercel |
