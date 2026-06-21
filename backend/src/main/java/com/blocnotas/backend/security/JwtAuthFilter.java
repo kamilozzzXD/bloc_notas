@@ -41,25 +41,46 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                                     FilterChain filterChain)
             throws ServletException, IOException {
 
+        String path = request.getRequestURI();
+
         try {
             String jwt = parseJwt(request);
 
-            if (jwt != null && jwtUtils.validateToken(jwt)) {
-                String username = jwtUtils.getUsernameFromToken(jwt);
-
-                UserDetails userDetails = userDetailsService.loadUserByUsername(username);
-
-                UsernamePasswordAuthenticationToken authentication =
-                        new UsernamePasswordAuthenticationToken(
-                                userDetails, null, userDetails.getAuthorities());
-
-                authentication.setDetails(
-                        new WebAuthenticationDetailsSource().buildDetails(request));
-
-                SecurityContextHolder.getContext().setAuthentication(authentication);
+            if (jwt == null) {
+                // Solo loggeamos rutas protegidas para no saturar la consola con /api/auth/**
+                if (!path.startsWith("/api/auth/")) {
+                    logger.debug("[JWT] Sin token en la petición: {} {}", request.getMethod(), path);
+                }
+                filterChain.doFilter(request, response);
+                return;
             }
+
+            logger.debug("[JWT] Token recibido para: {} {}", request.getMethod(), path);
+
+            if (!jwtUtils.validateToken(jwt)) {
+                // validateToken() ya logea el motivo exacto (expirado, malformado, etc.)
+                logger.warn("[JWT] Token INVÁLIDO para: {} {}", request.getMethod(), path);
+                filterChain.doFilter(request, response);
+                return;
+            }
+
+            String username = jwtUtils.getUsernameFromToken(jwt);
+            logger.debug("[JWT] Token válido para usuario '{}' en: {} {}", username, request.getMethod(), path);
+
+            UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+
+            UsernamePasswordAuthenticationToken authentication =
+                    new UsernamePasswordAuthenticationToken(
+                            userDetails, null, userDetails.getAuthorities());
+
+            authentication.setDetails(
+                    new WebAuthenticationDetailsSource().buildDetails(request));
+
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+            logger.debug("[JWT] Autenticación establecida para '{}' ✓", username);
+
         } catch (Exception e) {
-            logger.error("No se pudo establecer la autenticación del usuario: {}", e.getMessage());
+            logger.error("[JWT] Error inesperado procesando token en '{}': {}", path, e.getMessage(), e);
         }
 
         filterChain.doFilter(request, response);

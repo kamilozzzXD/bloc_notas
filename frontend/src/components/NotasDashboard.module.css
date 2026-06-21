@@ -1,0 +1,253 @@
+/* NotasDashboard.module.css */
+
+/* ── Contenedor principal ────────────────────── */
+.dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  padding: 1.5rem 2rem 3rem;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+/* ── Títulos de sección ───────────────────────── */
+.sectionTitle {
+  font-size: 1rem;
+  font-weight: 600;
+  color: hsl(210, 40%, 88%);
+  margin: 0 0 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.sectionTitle svg {
+  color: hsl(217, 91%, 65%);
+  flex-shrink: 0;
+}
+
+/* ── Sección heatmap ─────────────────────────── */
+.heatmapSection {
+  background: hsla(225, 40%, 10%, 0.6);
+  border: 1px solid hsla(217, 50%, 35%, 0.18);
+  border-radius: 1rem;
+  padding: 1.5rem;
+}
+
+.heatmapWrapper {
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+}
+
+/* Sobrescribir colores del texto de react-activity-calendar */
+.heatmapWrapper :global(.react-activity-calendar__legend-colors) span {
+  color: hsl(217, 30%, 60%) !important;
+}
+
+/* ── Layout principal (sidebar + notas) ──────── */
+.mainLayout {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+@media (max-width: 768px) {
+  .mainLayout {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard {
+    padding: 1rem;
+  }
+}
+
+/* ── Aside del calendario ─────────────────────── */
+.calendarAside {
+  background: hsla(225, 40%, 10%, 0.6);
+  border: 1px solid hsla(217, 50%, 35%, 0.18);
+  border-radius: 1rem;
+  padding: 1.25rem;
+  position: sticky;
+  top: 80px;
+}
+
+/* Estilos del react-calendar para modo oscuro */
+.reactCalendar {
+  width: 100% !important;
+  background: transparent !important;
+  border: none !important;
+  font-family: inherit !important;
+  color: hsl(210, 40%, 90%) !important;
+}
+
+:global(.react-calendar__navigation button) {
+  color: hsl(217, 91%, 70%) !important;
+  background: none !important;
+  font-size: 0.9rem !important;
+  min-width: 32px !important;
+  border-radius: 0.4rem !important;
+}
+
+:global(.react-calendar__navigation button:hover) {
+  background: hsla(217, 70%, 50%, 0.12) !important;
+}
+
+:global(.react-calendar__tile) {
+  color: hsl(210, 35%, 80%) !important;
+  background: none !important;
+  border-radius: 0.4rem !important;
+  font-size: 0.83rem !important;
+  padding: 0.4rem !important;
+  transition: background 0.15s !important;
+}
+
+:global(.react-calendar__tile:hover) {
+  background: hsla(217, 70%, 50%, 0.15) !important;
+}
+
+:global(.react-calendar__tile--active) {
+  background: hsl(217, 91%, 52%) !important;
+  color: #fff !important;
+}
+
+:global(.react-calendar__tile--now) {
+  background: hsla(217, 91%, 52%, 0.15) !important;
+  font-weight: 700 !important;
+}
+
+:global(.react-calendar__month-view__days__day--weekend) {
+  color: hsl(217, 50%, 70%) !important;
+}
+
+:global(.react-calendar__month-view__days__day--neighboringMonth) {
+  color: hsl(217, 25%, 40%) !important;
+}
+
+:global(.react-calendar__month-view__weekdays__weekday) {
+  color: hsl(217, 40%, 58%) !important;
+  font-size: 0.75rem !important;
+  text-decoration: none !important;
+}
+
+:global(.react-calendar__month-view__weekdays abbr) {
+  text-decoration: none !important;
+}
+
+:global(.react-calendar__navigation__label__labelText) {
+  color: hsl(210, 40%, 88%) !important;
+  font-weight: 600 !important;
+  font-size: 0.9rem !important;
+}
+
+/* Tile con notas: punto indicador */
+.tileConNotas {
+  position: relative;
+}
+
+.tileConNotas::after {
+  content: '';
+  position: absolute;
+  bottom: 3px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: hsl(217, 91%, 65%);
+}
+
+/* ── Sección notas ───────────────────────────── */
+.notasSection {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  background: hsla(225, 40%, 10%, 0.6);
+  border: 1px solid hsla(217, 50%, 35%, 0.18);
+  border-radius: 1rem;
+  padding: 1.25rem;
+  min-height: 300px;
+}
+
+.notasSectionHeader {
+  margin-bottom: 1rem;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 0.4rem;
+  border-radius: 999px;
+  background: hsl(217, 91%, 52%);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  margin-left: 0.4rem;
+}
+
+/* ── Formulario de nueva nota ────────────────── */
+.formWrapper {
+  margin-bottom: 1.25rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid hsla(217, 50%, 35%, 0.15);
+}
+
+/* ── Lista de notas ──────────────────────────── */
+.notasList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+}
+
+/* ── Estado vacío ────────────────────────────── */
+.sinNotas {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  color: hsl(217, 30%, 50%);
+  padding: 3rem 1rem;
+  text-align: center;
+  font-size: 0.9rem;
+}
+
+.sinNotas p {
+  margin: 0;
+}
+
+/* ── Loading ─────────────────────────────────── */
+.loadingPlaceholder {
+  color: hsl(217, 30%, 50%);
+  font-size: 0.875rem;
+  padding: 1rem 0;
+}
+
+.loadingNotas {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: hsl(217, 30%, 55%);
+  font-size: 0.875rem;
+  padding: 2rem;
+  justify-content: center;
+}
+
+/* ── Spinner ─────────────────────────────────── */
+.spinner {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  border: 2.5px solid hsla(217, 50%, 40%, 0.3);
+  border-top-color: hsl(217, 91%, 60%);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}

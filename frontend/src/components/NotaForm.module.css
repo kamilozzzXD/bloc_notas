@@ -1,0 +1,104 @@
+/* NotaForm.module.css */
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.textareaWrapper {
+  position: relative;
+}
+
+.textarea {
+  width: 100%;
+  padding: 0.875rem 1rem;
+  padding-bottom: 1.75rem; /* espacio para el contador */
+  background: hsla(225, 40%, 8%, 0.7);
+  border: 1px solid hsla(217, 50%, 40%, 0.25);
+  border-radius: 0.75rem;
+  color: hsl(210, 40%, 95%);
+  font-size: 0.95rem;
+  font-family: inherit;
+  resize: vertical;
+  min-height: 100px;
+  outline: none;
+  transition: border-color 0.25s, box-shadow 0.25s;
+  box-sizing: border-box;
+  line-height: 1.6;
+}
+
+.textarea::placeholder {
+  color: hsl(217, 25%, 45%);
+}
+
+.textarea:focus {
+  border-color: hsl(217, 91%, 60%);
+  box-shadow: 0 0 0 3px hsla(217, 91%, 60%, 0.12);
+}
+
+.textarea:disabled {
+  opacity: 0.6;
+}
+
+.charCount {
+  position: absolute;
+  bottom: 0.5rem;
+  right: 0.75rem;
+  font-size: 0.75rem;
+  color: hsl(217, 30%, 50%);
+  pointer-events: none;
+}
+
+.charCountWarning {
+  color: hsl(38, 92%, 60%);
+}
+
+.error {
+  font-size: 0.85rem;
+  color: hsl(0, 85%, 72%);
+  margin: 0;
+}
+
+.btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.7rem 1.25rem;
+  background: linear-gradient(135deg, hsl(217, 91%, 52%), hsl(239, 84%, 63%));
+  color: #fff;
+  border: none;
+  border-radius: 0.65rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.15s;
+  min-height: 42px;
+  align-self: flex-end;
+}
+
+.btn:hover:not(:disabled) {
+  opacity: 0.88;
+  transform: translateY(-1px);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid hsla(255, 255%, 255%, 0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}

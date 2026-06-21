@@ -10,9 +10,13 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@types/react-calendar": "^4.1.0",
     "@types/react-router-dom": "^5.3.3",
     "axios": "^1.18.0",
+    "date-fns": "^4.4.0",
     "react": "^19.2.6",
+    "react-activity-calendar": "^3.2.0",
+    "react-calendar": "^6.0.1",
     "react-dom": "^19.2.6",
     "react-router-dom": "^7.18.0"
   },

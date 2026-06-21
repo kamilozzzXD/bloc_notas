@@ -426,7 +426,7 @@ Cuando conectes tu repositorio a Render o Koyeb:
 
 ## 📋 Próximos pasos sugeridos
 
-- [ ] Implementar CRUD de notas (`Nota` entity, `NotaRepository`, `NotaController`)
+- [x] ~~Implementar CRUD de notas~~ ✅ Hecho (Nota entity, NotaRepository, NotaController)
 - [ ] Agregar roles de usuario (ADMIN, USER) con `@PreAuthorize`
 - [ ] Implementar refresh tokens para renovar el JWT sin reloguear
 - [ ] Configurar HTTPS en producción
@@ -456,3 +456,212 @@ Cuando conectes tu repositorio a Render o Koyeb:
 | Base imagen runtime | Eclipse Temurin 21 JRE Alpine |
 | Despliegue backend | Render / Koyeb (Docker) |
 | Despliegue frontend | Vercel |
+| Heatmap actividad | react-activity-calendar 3.x |
+| Calendario mensual | react-calendar 6.x |
+| Fechas | date-fns 4.x |
+
+---
+
+## 🗒️ CRUD de Notas
+
+### ¿Qué se implementó?
+
+El sistema completo de gestión de notas con interfaz de actividad estilo GitHub.
+
+### Backend
+
+#### Entidad `Nota` ([Nota.java](file:///c:/Users/camil/Downloads/bloc_notas/backend/src/main/java/com/blocnotas/backend/entity/Nota.java))
+
+| Campo | Tipo | Descripción |
+|---|---|---|
+| `id` | `Long` | PK auto-generada |
+| `contenido` | `TEXT` | Texto de la nota (máx. 5000 chars) |
+| `fechaCreacion` | `LocalDateTime` | Asignado automáticamente con `@PrePersist` |
+| `ipOrigen` | `VARCHAR(45)` | IP real del cliente al crear la nota |
+| `usuario` | `ManyToOne(Usuario)` | Propietario de la nota |
+
+#### Lógica de edición por zona horaria ([NotaController.java](file:///c:/Users/camil/Downloads/bloc_notas/backend/src/main/java/com/blocnotas/backend/controller/NotaController.java))
+
+El método `esEditableHoy()` determina si una nota puede editarse:
+
+```
+fechaCreacion (UTC del servidor)
+         ↓
+  Convierte a ZonedDateTime en ZoneId.of("America/Bogota")
+         ↓
+  Compara su LocalDate con ZonedDateTime.now(ZONA_BOGOTA).toLocalDate()
+         ↓
+  ✅ mismo día en Bogotá → editable (200 OK)
+  ❌ día anterior       → rechazado (403 Forbidden)
+```
+
+#### Captura de IP real ([NotaController.java](file:///c:/Users/camil/Downloads/bloc_notas/backend/src/main/java/com/blocnotas/backend/controller/NotaController.java))
+
+El método `extractClientIp()` usa esta cascada de prioridad:
+
+```
+1º X-Forwarded-For header  ← proxy de Render lo inyecta con la IP real
+2º X-Real-IP header        ← alternativa de algunos proxies
+3º request.getRemoteAddr() ← fallback (devuelve IP del proxy, no del cliente)
+```
+
+Si el header `X-Forwarded-For` tiene múltiples IPs (`"cliente, proxy1, proxy2"`), solo se toma la primera.
+
+#### Endpoints disponibles
+
+| Método | Ruta | Descripción | Auth |
+|---|---|---|---|
+| `GET` | `/api/notas` | Todas las notas del usuario | 🔒 JWT |
+| `GET` | `/api/notas/dia?fecha=YYYY-MM-DD` | Notas de un día específico | 🔒 JWT |
+| `GET` | `/api/notas/actividad` | Conteo por día para heatmap | 🔒 JWT |
+| `POST` | `/api/notas` | Crear nueva nota | 🔒 JWT |
+| `PUT` | `/api/notas/{id}` | Editar nota (solo si es del día en Bogotá) | 🔒 JWT |
+| `DELETE` | `/api/notas/{id}` | Eliminar nota | 🔒 JWT |
+
+---
+
+### Frontend
+
+#### Librerías a instalar
+
+```bash
+cd frontend
+pnpm add react-activity-calendar react-calendar date-fns
+```
+
+| Librería | Uso |
+|---|---|
+| `react-activity-calendar` | Heatmap estilo GitHub con datos de actividad diaria |
+| `react-calendar` | Calendario mensual interactivo para seleccionar días |
+| `date-fns` | Formateo y manipulación de fechas (locale español incluido) |
+
+#### Componentes creados
+
+| Componente | Archivo | Responsabilidad |
+|---|---|---|
+| `NotasDashboard` | [NotasDashboard.tsx](file:///c:/Users/camil/Downloads/bloc_notas/frontend/src/components/NotasDashboard.tsx) | Orquestador: carga datos, gestiona día seleccionado |
+| `NotaForm` | [NotaForm.tsx](file:///c:/Users/camil/Downloads/bloc_notas/frontend/src/components/NotaForm.tsx) | Formulario de nueva nota con contador de caracteres |
+| `NotaCard` | [NotaCard.tsx](file:///c:/Users/camil/Downloads/bloc_notas/frontend/src/components/NotaCard.tsx) | Tarjeta individual con edición inline y eliminación |
+
+#### Flujo de la interfaz
+
+```
+NotasDashboard
+├── ActivityCalendar (heatmap GitHub)
+│     └── Datos de /api/notas/actividad
+├── Calendar (calendario mensual)
+│     └── Clic en día → setDiaSeleccionado(fecha)
+│     └── Tiles con • (punto) si ese día tiene notas
+└── Sección de notas del día seleccionado
+      ├── Si diaSeleccionado === hoy:
+      │     ├── NotaForm (crear nota nueva)
+      │     └── NotaCard x N (con botón Editar + Eliminar)
+      └── Si diaSeleccionado < hoy:
+            └── NotaCard x N (solo lectura, sin controles)
+```
+
+#### Tipos TypeScript ([types/nota.ts](file:///c:/Users/camil/Downloads/bloc_notas/frontend/src/types/nota.ts))
+
+```typescript
+interface Nota           ← DTO devuelto por el backend
+interface NotaRequest    ← Body para crear/editar { contenido }
+interface CalendarActivity ← Formato requerido por react-activity-calendar
+interface ActividadResponse ← Respuesta de /api/notas/actividad
+```
+
+#### API functions ([api/notaApi.ts](file:///c:/Users/camil/Downloads/bloc_notas/frontend/src/api/notaApi.ts))
+
+```typescript
+obtenerNotas()               // GET /api/notas
+obtenerNotasPorDia(fecha)    // GET /api/notas/dia?fecha=
+obtenerActividad()           // GET /api/notas/actividad
+crearNota(data)              // POST /api/notas
+editarNota(id, data)         // PUT /api/notas/{id}
+eliminarNota(id)             // DELETE /api/notas/{id}
+```
+
+---
+
+## 🐛 Troubleshooting — 401 en /api/notas (local)
+
+### Síntoma
+Login funciona, el JWT se guarda en `sessionStorage`, pero las peticiones al
+dashboard devuelven `401 Unauthorized` → el interceptor de Axios borra la
+sesión y redirige al login.
+
+### Diagnóstico de los 3 posibles fallos
+
+#### ✅ Fallo 1 — Frontend (`notaApi.ts`)
+**Estado: OK, no era el problema.**
+Todas las funciones usan `apiClient` (instancia con interceptor JWT), no `axios` directo.
+
+#### ✅ Fallo 2 — `SecurityConfig.java` (reglas de autorización)
+**Estado: Corrección aplicada (preventiva y de claridad).**
+
+Se añadió un matcher explícito para `/api/notas/**` aunque `.anyRequest().authenticated()`
+ya lo cubría:
+
+```java
+.requestMatchers("/api/auth/**").permitAll()
+.requestMatchers("/api/notas/**").authenticated()  // ← añadido explícitamente
+.anyRequest().authenticated()
+```
+
+#### ✅ Fallo 3 — CORS (`allowedHeaders`)
+**Estado: Corrección aplicada (bug real de spec).**
+
+Cuando `setAllowCredentials(true)`, la especificación CORS prohíbe el wildcard `"*"` en
+`allowedHeaders`. Algunos navegadores rechazaban el preflight `OPTIONS` silenciosamente.
+
+```java
+// ANTES (incorrecto con credentials=true):
+config.setAllowedHeaders(List.of("*"));
+
+// DESPUÉS (correcto — lista explícita):
+config.setAllowedHeaders(List.of(
+    "Authorization", "Content-Type", "X-Requested-With",
+    "Accept", "Origin", "X-Forwarded-For"
+));
+config.setExposedHeaders(List.of("Authorization"));
+config.setMaxAge(3600L);
+```
+
+#### 🔴 Causa raíz real — JWT Secret inconsistente
+**La causa más probable del 401 en local es esta:**
+
+Si el backend se reinicia y arranca con un `JWT_SECRET` diferente al que usó
+para firmar el token guardado en `sessionStorage`, `JwtUtils.validateToken()`
+lanza una excepción de firma inválida → el `SecurityContext` queda vacío →
+Spring devuelve `401` aunque el filterChain esté correctamente configurado.
+
+**Solución inmediata:**
+```
+1. Reinicia el backend con las mismas variables de entorno que tenías antes.
+2. Haz logout → login en el frontend para obtener un nuevo token.
+```
+
+**Fix permanente:** Asegúrate de que `JWT_SECRET` sea siempre la misma variable
+de entorno al arrancar. En local, usa el archivo `.env` con el mismo valor fijo.
+
+### Logs de diagnóstico añadidos
+
+Se habilitó logging `DEBUG` en `application.properties`:
+
+```properties
+logging.level.com.blocnotas.backend.security.JwtAuthFilter=DEBUG
+logging.level.com.blocnotas.backend.security.JwtUtils=DEBUG
+```
+
+Ahora la consola del backend muestra exactamente qué pasa con cada petición:
+
+```
+[JWT] Token recibido para: GET /api/notas
+[JWT] Token válido para usuario 'camil' en: GET /api/notas
+[JWT] Autenticación establecida para 'camil' ✓
+```
+
+Si hay un fallo, verás:
+```
+[JWT] Token INVÁLIDO para: GET /api/notas      ← token expirado o firmado con otra clave
+[JWT] Sin token en la petición: GET /api/notas ← el interceptor no inyectó el header
+```

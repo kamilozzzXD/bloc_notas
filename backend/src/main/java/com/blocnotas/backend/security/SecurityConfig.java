@@ -70,8 +70,15 @@ public class SecurityConfig {
     }
 
     /**
-     * Configura el origen permitido para CORS.
-     * En producción, cambia "http://localhost:5173" por tu dominio real.
+     * Configuración CORS para desarrollo local y producción (Vercel).
+     *
+     * IMPORTANTE: Cuando allowCredentials=true, la spec CORS prohíbe usar
+     * el wildcard "*" en allowedHeaders. Se debe usar una lista explícita,
+     * de lo contrario el preflight OPTIONS falla silenciosamente en algunos
+     * navegadores y el backend rechaza la petición con 403/401.
+     *
+     * exposedHeaders permite que el interceptor de Axios pueda leer headers
+     * de la respuesta (ej. un futuro Refresh-Token header).
      */
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
@@ -79,9 +86,21 @@ public class SecurityConfig {
         config.setAllowedOrigins(List.of(
                 "http://localhost:5173",
                 "https://bloc-notas-tau.vercel.app"));
-        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        config.setAllowedHeaders(List.of("*"));
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
+        // Lista explícita requerida por la spec CORS cuando allowCredentials=true
+        config.setAllowedHeaders(List.of(
+                "Authorization",
+                "Content-Type",
+                "X-Requested-With",
+                "Accept",
+                "Origin",
+                "X-Forwarded-For"
+        ));
+        // Exponer Authorization para que el cliente pueda leerlo si fuera necesario
+        config.setExposedHeaders(List.of("Authorization"));
         config.setAllowCredentials(true);
+        // Cachear el preflight por 1 hora (evita OPTIONS extras)
+        config.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
@@ -90,32 +109,51 @@ public class SecurityConfig {
 
     // ── Security Filter Chain ──────────────────────────────────────────────────
 
+    /**
+     * Cadena de filtros de seguridad.
+     *
+     * Causa raíz del 401 en local: Si el servidor se reinicia con una JWT_SECRET
+     * diferente a la que generó el token (ej. cambio de variables de entorno),
+     * JwtUtils.validateToken() falla, el SecurityContext queda vacío y Spring
+     * devuelve 401 automáticamente aunque anyRequest().authenticated() esté bien.
+     *
+     * Solución: usar siempre la misma JWT_SECRET durante una sesión local, o
+     * hacer logout → login cada vez que se reinicia el backend.
+     */
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
                 // Deshabilitar CSRF (innecesario en APIs REST con JWT)
                 .csrf(AbstractHttpConfigurer::disable)
 
-                // Configurar CORS
+                // Configurar CORS con la configuración explícita definida arriba
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
 
                 // Política sin estado (stateless): no se crean sesiones HTTP
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .sessionManagement(session ->
+                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
-                // Manejador de errores 401
-                .exceptionHandling(ex -> ex.authenticationEntryPoint(authEntryPoint))
+                // Manejador de errores 401: devuelve JSON en lugar de redirect HTML
+                .exceptionHandling(ex ->
+                        ex.authenticationEntryPoint(authEntryPoint))
 
-                // Reglas de autorización
+                // ── Reglas de autorización ──────────────────────────────────────
                 .authorizeHttpRequests(auth -> auth
-                        // Rutas públicas: login y registro
+                        // Rutas públicas: login y registro (sin JWT)
                         .requestMatchers("/api/auth/**").permitAll()
-                        // Cualquier otra ruta requiere autenticación
-                        .anyRequest().authenticated())
+                        // Rutas de notas: requieren JWT válido explícitamente
+                        .requestMatchers("/api/notas/**").authenticated()
+                        // Cualquier otra ruta futura también requiere autenticación
+                        .anyRequest().authenticated()
+                )
 
-                // Proveedor de autenticación
+                // Proveedor de autenticación (BCrypt + UserDetailsService)
                 .authenticationProvider(authenticationProvider())
 
-                // Insertar el filtro JWT antes del filtro estándar de usuario/contraseña
+                // JwtAuthFilter se ejecuta ANTES del filtro estándar de Spring Security.
+                // Si el token es válido, setea el Authentication en el SecurityContext.
+                // Si no hay token o es inválido, continúa sin autenticación → Spring
+                // evalúa las reglas de autorización y devuelve 401.
                 .addFilterBefore(jwtAuthFilter(), UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
