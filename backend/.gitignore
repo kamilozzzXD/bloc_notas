@@ -31,7 +31,6 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Variables de Entorno (¡El más importante!) ###
 .env
-.gitignore
-.env.example
-.gitattributes
