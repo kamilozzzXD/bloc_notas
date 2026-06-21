@@ -436,6 +436,65 @@ Cuando conectes tu repositorio a Render o Koyeb:
 
 ---
 
+## 🆕 Cambios recientes
+
+### v1.1 — Calendario plegable + Exportar diario
+
+#### 1. Calendario plegable (`NotasDashboard.tsx`)
+
+El calendario mensual (`react-calendar`) ahora está **oculto por defecto** para ahorrar espacio visual.
+Un botón estilizado **📅 Consultar Día** lo despliega u oculta con animación de flecha.
+
+- Estado gestionado con `useState(false)` → `calendarVisible`.
+- La flecha (▾) rota 180° cuando el calendario está abierto (transición CSS).
+- El botón usa `aria-expanded` para accesibilidad.
+- Estilos nuevos en `NotasDashboard.module.css`: `.calendarToggle`, `.toggleIcon`, `.toggleIconOpen`.
+
+#### 2. Exportar diario a `.txt`
+
+**Backend — `NotaController.java`**
+
+Nuevo endpoint:
+
+| Método | Ruta | Descripción | Auth |
+|---|---|---|---|
+| `GET` | `/api/notas/exportar` | Descarga todas las notas como `.txt` | 🔒 JWT |
+
+Formato del archivo generado:
+
+```
+=== DIARIO PERSONAL - {usuario} ===
+Exportado el: yyyy-MM-dd HH:mm:ss (Hora Colombia)
+Total de notas: N
+=============================================
+
+Fecha y Hora : 2025-06-20 21:30:00 (Bogotá)
+IP de origen : 190.x.x.x
+Contenido    :
+Texto de la nota...
+---------------------------------------------
+
+```
+
+- Las fechas se convierten a zona horaria `America/Bogota` con `DateTimeFormatter`.
+- El archivo se devuelve como `text/plain` con cabecera `Content-Disposition: attachment`.
+- Codificación UTF-8 para soporte de caracteres especiales (tildes, ñ, etc.).
+
+**Frontend — `notaApi.ts` y `NotasDashboard.tsx`**
+
+- Nueva función `exportarDiario()` en `notaApi.ts`: llama al endpoint con `responseType: 'blob'`.
+- Botón **📥 Exportar Diario** en la cabecera de la sección de notas.
+- Al hacer clic: crea un `<a>` temporal con `URL.createObjectURL(blob)`, dispara la descarga y libera la URL.
+- Estado `exportando` desactiva el botón y muestra ⏳ mientras dura la petición.
+- Estilos nuevos: `.exportBtn` con hover/disabled en `NotasDashboard.module.css`.
+
+#### Limpieza de comentarios
+
+Se reemplazaron los bloques Javadoc extensos en `NotaController.java` por comentarios de línea concisos y directos, manteniendo la legibilidad sin exceso de texto.
+
+
+---
+
 ## 🛠️ Tecnologías utilizadas
 
 | Capa | Tecnología |

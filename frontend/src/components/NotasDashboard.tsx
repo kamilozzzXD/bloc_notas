@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { ActivityCalendar } from 'react-activity-calendar';
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
-import { obtenerActividad, obtenerNotasPorDia } from '../api/notaApi';
+import { obtenerActividad, obtenerNotasPorDia, exportarDiario } from '../api/notaApi';
 import type { CalendarActivity } from '../types/nota';
 import type { Nota } from '../types/nota';
 import NotaForm from './NotaForm';
@@ -11,17 +11,7 @@ import styles from './NotasDashboard.module.css';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 
-/**
- * Convierte el conteo de notas en un nivel de intensidad 0-4
- * para el heatmap de react-activity-calendar.
- *
- * Escala:
- *  0 notas  → nivel 0
- *  1        → nivel 1
- *  2-3      → nivel 2
- *  4-6      → nivel 3
- *  7+       → nivel 4
- */
+// Convierte el conteo de notas en nivel 0-4 para el heatmap
 function countToLevel(count: number): CalendarActivity['level'] {
   if (count === 0) return 0;
   if (count === 1) return 1;
@@ -30,20 +20,13 @@ function countToLevel(count: number): CalendarActivity['level'] {
   return 4;
 }
 
-/**
- * Dashboard principal de notas.
- *
- * Contiene:
- * - Heatmap de actividad (react-activity-calendar)
- * - Calendario mensual (react-calendar) para seleccionar un día
- * - Lista de notas del día seleccionado
- * - Formulario de creación (solo visible si el día seleccionado es hoy)
- */
+// Dashboard principal: heatmap, calendario plegable, lista de notas y formulario
 const NotasDashboard: React.FC = () => {
   const hoy = format(new Date(), 'yyyy-MM-dd');
 
-  // Día seleccionado en el calendario; por defecto hoy
   const [diaSeleccionado, setDiaSeleccionado] = useState<string>(hoy);
+  const [calendarVisible, setCalendarVisible] = useState(false); // oculto por defecto
+  const [exportando, setExportando] = useState(false);
 
   // Datos del heatmap
   const [actividadData, setActividadData] = useState<CalendarActivity[]>([]);
@@ -102,8 +85,6 @@ const NotasDashboard: React.FC = () => {
     cargarNotasDia(diaSeleccionado);
   }, [diaSeleccionado, cargarNotasDia]);
 
-  // ── Handlers ────────────────────────────────────────────────────────────
-
   /** Cuando el usuario hace clic en un día del calendario */
   const handleCalendarChange = (value: Date | Date[] | null) => {
     if (!value || Array.isArray(value)) return;
@@ -116,6 +97,22 @@ const NotasDashboard: React.FC = () => {
     cargarNotasDia(diaSeleccionado);
   };
 
+  // Descarga el diario como archivo .txt
+  const handleExportar = async () => {
+    setExportando(true);
+    try {
+      const blob = await exportarDiario();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'mis_notas.txt';
+      link.click();
+      URL.revokeObjectURL(url);
+    } finally {
+      setExportando(false);
+    }
+  };
+
   const esDiaHoy = diaSeleccionado === hoy;
 
   const tituloSeccion = esDiaHoy
@@ -125,7 +122,7 @@ const NotasDashboard: React.FC = () => {
   return (
     <div className={styles.dashboard}>
 
-      {/* ── Heatmap ─────────────────────────────────────────────────── */}
+      {/* Heatmap */}
       <section className={styles.heatmapSection}>
         <h2 className={styles.sectionTitle}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -158,32 +155,35 @@ const NotasDashboard: React.FC = () => {
         )}
       </section>
 
-      {/* ── Layout: calendario + notas ──────────────────────────────── */}
+      {/* Layout: calendario + notas */}
       <div className={styles.mainLayout}>
 
-        {/* Calendario mensual */}
+        {/* Calendario mensual plegable */}
         <aside className={styles.calendarAside}>
-          <h2 className={styles.sectionTitle}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <rect x="3" y="4" width="18" height="18" rx="2" />
-              <line x1="16" y1="2" x2="16" y2="6" />
-              <line x1="8" y1="2" x2="8" y2="6" />
-              <line x1="3" y1="10" x2="21" y2="10" />
-            </svg>
-            Seleccionar día
-          </h2>
-          <Calendar
-            onChange={handleCalendarChange as (value: unknown) => void}
-            value={parseISO(diaSeleccionado)}
-            locale="es-CO"
-            maxDate={new Date()}
-            className={styles.reactCalendar}
-            tileClassName={({ date }) => {
-              const dateStr = format(date, 'yyyy-MM-dd');
-              const tieneNotas = actividadData.some((a) => a.date === dateStr && a.count > 0);
-              return tieneNotas ? styles.tileConNotas : null;
-            }}
-          />
+          <button
+            id="btn-toggle-calendario"
+            className={styles.calendarToggle}
+            onClick={() => setCalendarVisible(v => !v)}
+            aria-expanded={calendarVisible}
+          >
+            📅 Consultar Día
+            <span className={`${styles.toggleIcon} ${calendarVisible ? styles.toggleIconOpen : ''}`}>▾</span>
+          </button>
+
+          {calendarVisible && (
+            <Calendar
+              onChange={handleCalendarChange as (value: unknown) => void}
+              value={parseISO(diaSeleccionado)}
+              locale="es-CO"
+              maxDate={new Date()}
+              className={styles.reactCalendar}
+              tileClassName={({ date }) => {
+                const dateStr = format(date, 'yyyy-MM-dd');
+                const tieneNotas = actividadData.some((a) => a.date === dateStr && a.count > 0);
+                return tieneNotas ? styles.tileConNotas : null;
+              }}
+            />
+          )}
         </aside>
 
         {/* Lista de notas del día */}
@@ -195,6 +195,15 @@ const NotasDashboard: React.FC = () => {
                 <span className={styles.badge}>{notas.length}</span>
               )}
             </h2>
+            <button
+              id="btn-exportar-diario"
+              className={styles.exportBtn}
+              onClick={handleExportar}
+              disabled={exportando}
+              title="Descargar todas tus notas como archivo de texto"
+            >
+              {exportando ? '⏳ Exportando...' : '📥 Exportar Notas'}
+            </button>
           </div>
 
           {/* Formulario (solo si es hoy) */}

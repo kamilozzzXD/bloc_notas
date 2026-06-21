@@ -53,12 +53,13 @@ export async function editarNota(id: number, data: NotaRequest): Promise<Nota> {
   return res.data;
 }
 
-/**
- * Elimina una nota por ID.
- * DELETE /api/notas/{id}
- *
- * @param id ID de la nota a eliminar
- */
+// Elimina una nota por ID. DELETE /api/notas/{id}
 export async function eliminarNota(id: number): Promise<void> {
   await apiClient.delete(`/api/notas/${id}`);
+}
+
+// Descarga todas las notas del usuario como archivo .txt. GET /api/notas/exportar
+export async function exportarDiario(): Promise<Blob> {
+  const res = await apiClient.get('/api/notas/exportar', { responseType: 'blob' });
+  return res.data;
 }

@@ -62,7 +62,7 @@
   }
 }
 
-/* ── Aside del calendario ─────────────────────── */
+/* ── Aside del calendario ───────────────────────────── */
 .calendarAside {
   background: hsla(225, 40%, 10%, 0.6);
   border: 1px solid hsla(217, 50%, 35%, 0.18);
@@ -70,6 +70,41 @@
   padding: 1.25rem;
   position: sticky;
   top: 80px;
+}
+
+/* Botón que despliega/colapsa el calendario */
+.calendarToggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: hsla(217, 70%, 40%, 0.12);
+  border: 1px solid hsla(217, 50%, 45%, 0.22);
+  border-radius: 0.6rem;
+  padding: 0.6rem 0.9rem;
+  color: hsl(210, 40%, 88%);
+  font-size: 0.9rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.18s, border-color 0.18s;
+}
+
+.calendarToggle:hover {
+  background: hsla(217, 70%, 45%, 0.2);
+  border-color: hsla(217, 70%, 55%, 0.4);
+}
+
+.toggleIcon {
+  display: inline-block;
+  font-style: normal;
+  transition: transform 0.2s ease;
+  font-size: 1rem;
+  color: hsl(217, 91%, 65%);
+}
+
+.toggleIconOpen {
+  transform: rotate(180deg);
 }
 
 /* Estilos del react-calendar para modo oscuro */
@@ -170,7 +205,40 @@
 }
 
 .notasSectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem;
   margin-bottom: 1rem;
+}
+
+/* Botón de exportar diario */
+.exportBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.85rem;
+  border-radius: 0.5rem;
+  border: 1px solid hsla(217, 50%, 45%, 0.3);
+  background: hsla(217, 70%, 40%, 0.1);
+  color: hsl(217, 91%, 70%);
+  font-size: 0.82rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.18s, border-color 0.18s, opacity 0.18s;
+  white-space: nowrap;
+}
+
+.exportBtn:hover:not(:disabled) {
+  background: hsla(217, 70%, 45%, 0.2);
+  border-color: hsla(217, 70%, 60%, 0.5);
+}
+
+.exportBtn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 .badge {
