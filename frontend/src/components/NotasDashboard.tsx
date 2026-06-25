@@ -25,7 +25,8 @@ const NotasDashboard: React.FC = () => {
   const hoy = format(new Date(), 'yyyy-MM-dd');
 
   const [diaSeleccionado, setDiaSeleccionado] = useState<string>(hoy);
-  const [calendarVisible, setCalendarVisible] = useState(false); // oculto por defecto
+  const [calendarVisible, setCalendarVisible] = useState(false);  // oculto por defecto
+  const [heatmapVisible, setHeatmapVisible] = useState(true);    // visible por defecto
   const [exportando, setExportando] = useState(false);
 
   // Datos del heatmap
@@ -122,36 +123,46 @@ const NotasDashboard: React.FC = () => {
   return (
     <div className={styles.dashboard}>
 
-      {/* Heatmap */}
+      {/* Heatmap — plegable */}
       <section className={styles.heatmapSection}>
-        <h2 className={styles.sectionTitle}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-            <line x1="16" y1="2" x2="16" y2="6" />
-            <line x1="8" y1="2" x2="8" y2="6" />
-            <line x1="3" y1="10" x2="21" y2="10" />
-          </svg>
-          Actividad de notas
-        </h2>
+        <button
+          id="btn-toggle-heatmap"
+          className={styles.calendarToggle}
+          onClick={() => setHeatmapVisible(v => !v)}
+          aria-expanded={heatmapVisible}
+        >
+          <span className={styles.heatmapToggleLabel}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+              <line x1="16" y1="2" x2="16" y2="6" />
+              <line x1="8" y1="2" x2="8" y2="6" />
+              <line x1="3" y1="10" x2="21" y2="10" />
+            </svg>
+            Actividad de notas
+          </span>
+          <span className={`${styles.toggleIcon} ${heatmapVisible ? styles.toggleIconOpen : ''}`}>▾</span>
+        </button>
 
-        {cargandoActividad ? (
-          <div className={styles.loadingPlaceholder}>Cargando heatmap...</div>
-        ) : (
-          <div className={styles.heatmapWrapper}>
-            <ActivityCalendar
-              data={actividadData}
-              colorScheme="dark"
-              theme={{
-                dark: ['hsl(225, 40%, 10%)', 'hsl(217, 70%, 28%)', 'hsl(217, 80%, 40%)', 'hsl(217, 85%, 52%)', 'hsl(217, 91%, 65%)'],
-              }}
-              labels={{
-                totalCount: '{{count}} notas en {{year}}',
-                legend: { less: 'Menos', more: 'Más' },
-              }}
-              showWeekdayLabels
-              fontSize={12}
-            />
-          </div>
+        {heatmapVisible && (
+          cargandoActividad ? (
+            <div className={styles.loadingPlaceholder}>Cargando heatmap...</div>
+          ) : (
+            <div className={styles.heatmapWrapper}>
+              <ActivityCalendar
+                data={actividadData}
+                colorScheme="dark"
+                theme={{
+                  dark: ['hsl(225, 40%, 10%)', 'hsl(217, 70%, 28%)', 'hsl(217, 80%, 40%)', 'hsl(217, 85%, 52%)', 'hsl(217, 91%, 65%)'],
+                }}
+                labels={{
+                  totalCount: '{{count}} notas en {{year}}',
+                  legend: { less: 'Menos', more: 'Más' },
+                }}
+                showWeekdayLabels
+                fontSize={12}
+              />
+            </div>
+          )
         )}
       </section>
 

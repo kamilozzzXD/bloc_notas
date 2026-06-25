@@ -582,7 +582,80 @@ El frontend ahora recibe el string con `Z` y `date-fns/format` muestra la hora l
 | `frontend/.../types/nota.ts` | Comentario del tipo actualizado (sin cambios de lógica) |
 
 
+---
 
+### v1.3 — Heatmap plegable + Fix superposición badge "SOLO LECTURA"
+
+#### Tarea 1: Heatmap de actividad plegable
+
+**Problema:** El heatmap siempre estaba visible y ocupaba espacio vertical fijo, restando protagonismo a la sección principal de notas.
+
+**Solución:** Se replicó exactamente la misma lógica de estado y animación ya implementada en el calendario mensual ("Consultar Día").
+
+**Cambios en [`NotasDashboard.tsx`](file:///c:/Users/camil/Downloads/bloc_notas/frontend/src/components/NotasDashboard.tsx):**
+
+- Nuevo estado `heatmapVisible` con `useState(true)` — visible por defecto (a diferencia del calendario que arranca cerrado).
+- El `<h2>` estático se reemplaza por un `<button id="btn-toggle-heatmap">` con las mismas clases `calendarToggle` y `toggleIcon` / `toggleIconOpen`.
+- El heatmap (y su loading placeholder) solo se renderizan si `heatmapVisible === true`.
+
+```tsx
+// ANTES — siempre visible:
+<h2 className={styles.sectionTitle}>Actividad de notas</h2>
+{cargandoActividad ? <div>Cargando...</div> : <ActivityCalendar ... />}
+
+// DESPUÉS — plegable:
+const [heatmapVisible, setHeatmapVisible] = useState(true);
+// ...
+<button onClick={() => setHeatmapVisible(v => !v)} aria-expanded={heatmapVisible}>
+  Actividad de notas
+  <span className={`${styles.toggleIcon} ${heatmapVisible ? styles.toggleIconOpen : ''}`}>▾</span>
+</button>
+{heatmapVisible && ( cargandoActividad ? ... : <ActivityCalendar ... /> )}
+```
+
+**Cambios en [`NotasDashboard.module.css`](file:///c:/Users/camil/Downloads/bloc_notas/frontend/src/components/NotasDashboard.module.css):**
+
+- Nueva clase `.heatmapToggleLabel` para alinear el ícono SVG y el texto del botón con `display: flex; gap: 0.45rem`.
+- `padding-top: 1rem` en `.heatmapWrapper` para separar el gráfico del botón cuando está expandido.
+
+---
+
+#### Tarea 2: Fix de superposición del badge "SOLO LECTURA"
+
+**Problema:** En tarjetas de días anteriores, el badge "SOLO LECTURA" usaba `position: absolute` anclado a `top / right` de la card. Al ser absoluto, quedaba flotando sobre el texto de la nota sin respetar el flujo del documento, lo que causaba superposición visual.
+
+**Solución:** Se eliminó el posicionamiento absoluto y se integró el badge en el flujo flex normal de la tarjeta.
+
+**Cambios en [`NotaCard.module.css`](file:///c:/Users/camil/Downloads/bloc_notas/frontend/src/components/NotaCard.module.css):**
+
+```css
+/* ANTES — flotaba sobre el texto: */
+.soloLecturaBadge {
+  position: absolute;
+  top: 0.65rem;
+  right: 0.75rem;
+  /* ... */
+}
+
+/* DESPUÉS — flujo normal, siempre debajo del contenido: */
+.soloLecturaBadge {
+  align-self: flex-end;   /* alineado a la derecha */
+  margin-top: auto;       /* empuja hacia el final del flex-column */
+  /* ... */
+}
+```
+
+Como `.card` ya tiene `display: flex; flex-direction: column; gap: 0.75rem`, el badge aparece como el último elemento visual de la tarjeta (después del footer con fecha y botones), completamente separado del texto y sin superposiciones.
+
+#### Archivos modificados
+
+| Archivo | Tarea | Cambio |
+|---|---|---|
+| `frontend/.../NotasDashboard.tsx` | Heatmap plegable | Nuevo estado `heatmapVisible` + botón toggle |
+| `frontend/.../NotasDashboard.module.css` | Heatmap plegable | `.heatmapToggleLabel` + `padding-top` en `.heatmapWrapper` |
+| `frontend/.../NotaCard.module.css` | Badge solo lectura | `position: absolute` → `align-self: flex-end; margin-top: auto` |
+
+---
 
 ## 🛠️ Tecnologías utilizadas
 

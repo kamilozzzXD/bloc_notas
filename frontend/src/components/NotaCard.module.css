@@ -135,10 +135,10 @@
 }
 
 /* ── Badge solo lectura ───────────────────────── */
+/* Sin position:absolute para no superponerse al contenido de la nota */
 .soloLecturaBadge {
-  position: absolute;
-  top: 0.65rem;
-  right: 0.75rem;
+  align-self: flex-end;
+  margin-top: auto;
   font-size: 0.7rem;
   font-weight: 600;
   text-transform: uppercase;
