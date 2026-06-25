@@ -7,7 +7,11 @@
 export interface Nota {
   id: number;
   contenido: string;
-  /** ISO 8601 string: "2024-06-21T15:30:00" */
+  /**
+   * ISO 8601 con indicador UTC: "2026-06-25T16:25:00Z"
+   * El sufijo "Z" garantiza que new Date(fechaCreacion) interprete correctamente
+   * como UTC y convierta a la hora local del usuario sin desfases.
+   */
   fechaCreacion: string;
   ipOrigen: string;
   username: string;

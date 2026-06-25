@@ -495,6 +495,95 @@ Se reemplazaron los bloques Javadoc extensos en `NotaController.java` por coment
 
 ---
 
+### v1.2 — Fix: Desfase horario de +5h en Producción
+
+#### Síntoma
+
+| Entorno | Hora real | Hora mostrada en UI |
+|---|---|---|
+| `localhost` | 11:25 | ✅ 11:25 |
+| Producción (Docker) | 11:25 | ❌ 16:25 (+5h) |
+
+La exportación `.txt` siempre mostraba la hora correcta porque ya forzaba `ZoneId.of("America/Bogota")` explícitamente. El CRUD no.
+
+#### Diagnóstico
+
+El problema era una cadena de ambigüedades de zona horaria:
+
+```
+1. Nota.java → LocalDateTime.now()
+              ↓
+   Docker/Render corre en UTC → captura 16:25 (hora UTC)
+              ↓
+2. NotaResponse.java → serializa como "2026-06-25T16:25:00"
+   (sin sufijo de zona → ambiguo)
+              ↓
+3. Frontend → new Date("2026-06-25T16:25:00")
+   JavaScript interpreta como HORA LOCAL del navegador → muestra 16:25
+   (el usuario ve +5h de adelanto)
+```
+
+#### Solución aplicada
+
+**Filosofía:** el backend es quien sabe en qué zona horaria almacena los datos. Debe comunicarlo explícitamente en el JSON. El frontend no debe adivinar.
+
+##### 1. [`Nota.java`](file:///c:/Users/camil/Downloads/bloc_notas/backend/src/main/java/com/blocnotas/backend/entity/Nota.java) — Captura UTC explícita
+
+```java
+// ANTES (depende del reloj del sistema/contenedor):
+this.fechaCreacion = LocalDateTime.now();
+
+// DESPUÉS (siempre UTC, independiente del contenedor):
+this.fechaCreacion = LocalDateTime.now(ZoneOffset.UTC);
+```
+
+##### 2. [`NotaResponse.java`](file:///c:/Users/camil/Downloads/bloc_notas/backend/src/main/java/com/blocnotas/backend/dto/NotaResponse.java) — Serialización con indicador de zona
+
+```java
+// ANTES → JSON sin zona: "2026-06-25T16:25:00"
+// (el navegador lo trata como hora local → bug)
+LocalDateTime fechaCreacion  →  nota.getFechaCreacion()
+
+// DESPUÉS → JSON con zona UTC: "2026-06-25T16:25:00Z"
+// (la Z le dice al navegador: esto es UTC, conviértelo tú)
+OffsetDateTime fechaCreacion  →  nota.getFechaCreacion().atOffset(ZoneOffset.UTC)
+```
+
+##### 3. [`NotaController.java`](file:///c:/Users/camil/Downloads/bloc_notas/backend/src/main/java/com/blocnotas/backend/controller/NotaController.java) — Consistencia en métodos internos
+
+```java
+// ANTES (asumía que systemDefault() era UTC en Docker — frágil):
+fechaCreacion.atZone(ZoneId.systemDefault()).withZoneSameInstant(ZONA_BOGOTA)
+
+// DESPUÉS (explícito — funciona igual en cualquier entorno):
+fechaCreacion.atZone(ZoneOffset.UTC).withZoneSameInstant(ZONA_BOGOTA)
+```
+
+Aplicado en: `esEditableHoy()` y el loop del endpoint `GET /api/notas/exportar`.
+
+#### ¿Por qué el frontend NO necesitó cambios?
+
+`NotaCard.tsx` ya usaba `new Date(nota.fechaCreacion)`. La diferencia es:
+
+| String recibido | Comportamiento de `new Date()` |
+|---|---|
+| `"2026-06-25T16:25:00"` | Interpreta como hora **local** del navegador ❌ |
+| `"2026-06-25T16:25:00Z"` | Interpreta como UTC, convierte a local del usuario ✅ |
+
+El frontend ahora recibe el string con `Z` y `date-fns/format` muestra la hora local correcta automáticamente.
+
+#### Archivos modificados
+
+| Archivo | Cambio |
+|---|---|
+| `backend/.../entity/Nota.java` | `LocalDateTime.now()` → `LocalDateTime.now(ZoneOffset.UTC)` |
+| `backend/.../dto/NotaResponse.java` | `LocalDateTime` → `OffsetDateTime` con `.atOffset(ZoneOffset.UTC)` |
+| `backend/.../controller/NotaController.java` | `ZoneId.systemDefault()` → `ZoneOffset.UTC` en `esEditableHoy()` y exportar |
+| `frontend/.../types/nota.ts` | Comentario del tipo actualizado (sin cambios de lógica) |
+
+
+
+
 ## 🛠️ Tecnologías utilizadas
 
 | Capa | Tecnología |

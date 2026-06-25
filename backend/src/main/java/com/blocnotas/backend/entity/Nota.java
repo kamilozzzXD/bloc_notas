@@ -5,6 +5,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 
 /**
  * Entidad que representa una Nota del usuario.
@@ -34,8 +35,10 @@ public class Nota {
 
     /**
      * Fecha y hora de creación en UTC.
+     * Se almacena explícitamente con ZoneOffset.UTC para ser agnóstico a la
+     * zona horaria del servidor/contenedor Docker (que puede variar entre local y producción).
      * La conversión a zona horaria America/Bogota se hace en la capa de negocio
-     * (NotaController) al validar edición, no aquí.
+     * (NotaController) cuando se valida edición o cuando se exporta el .txt.
      */
     @Column(nullable = false, updatable = false)
     private LocalDateTime fechaCreacion;
@@ -65,7 +68,9 @@ public class Nota {
     @PrePersist
     protected void onCreate() {
         if (this.fechaCreacion == null) {
-            this.fechaCreacion = LocalDateTime.now();
+            // Siempre UTC explícito: evita el desfase de +5h cuando el contenedor
+            // Docker corre en UTC pero LocalDateTime.now() usa el reloj del sistema.
+            this.fechaCreacion = LocalDateTime.now(ZoneOffset.UTC);
         }
     }
 

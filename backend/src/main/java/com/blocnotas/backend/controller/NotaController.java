@@ -22,6 +22,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -68,7 +69,8 @@ public class NotaController {
 
     // Una nota es editable si fue creada el mismo día en zona horaria Bogotá
     private boolean esEditableHoy(LocalDateTime fechaCreacion) {
-        ZonedDateTime creacionEnBogota = fechaCreacion.atZone(ZoneId.systemDefault())
+        // fechaCreacion está almacenada en UTC explícito (ZoneOffset.UTC en Nota.java)
+        ZonedDateTime creacionEnBogota = fechaCreacion.atZone(ZoneOffset.UTC)
                 .withZoneSameInstant(ZONA_BOGOTA);
         LocalDate hoyEnBogota = ZonedDateTime.now(ZONA_BOGOTA).toLocalDate();
         return creacionEnBogota.toLocalDate().isEqual(hoyEnBogota);
@@ -144,8 +146,9 @@ public class NotaController {
         sb.append("=".repeat(45)).append("\n\n");
 
         for (Nota nota : notas) {
+            // fechaCreacion está en UTC explícito → convertir a Bogotá para la exportación
             ZonedDateTime fechaBogota = nota.getFechaCreacion()
-                    .atZone(ZoneId.systemDefault())
+                    .atZone(ZoneOffset.UTC)
                     .withZoneSameInstant(ZONA_BOGOTA);
 
             sb.append("Fecha y Hora : ").append(fechaBogota.format(FMT_BOGOTA)).append(" (Bogotá)\n");
